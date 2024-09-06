@@ -4,19 +4,18 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>Intro to MapView - Create a 2D map | Sample | ArcGIS Maps SDK for JavaScript 4.30</title>
+    <title>Map with Click Event - ArcGIS Maps SDK</title>
     <!-- Link Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
 
     <style>
         body {
-            background-color: #333333;
+            background-color: black;
         }
 
         html,
-        body,
-        #viewDiv {
+        body {
             padding: 0;
             margin: 0;
             height: 100%;
@@ -28,14 +27,50 @@
             padding-bottom: 20px;
         }
 
-        .container {
-            margin-top: 2rem;
-            height: 80vh;
-            width: 80%;
+        .sidebar {
+            height: calc(100% - 80px); /* Adjust for navbar height */
+            width: 250px;
+            position: fixed;
+            top: 80px; /* Adjusted for navbar height */
+            left: 0;
+            background-color: #343a40;
+            padding-top: 20px;
+            color: white;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 18px;
+            color: white;
+            display: block;
+        }
+
+        .sidebar a:hover {
+            background-color: #495057;
+        }
+
+        .content {
+            margin-left: 250px; /* Same width as sidebar */
+            margin-top: 0px; /* Height of the navbar */
+            padding: 1rem; /* Add some padding for better appearance */
+            height: calc(100% - 80px); /* Full height minus navbar */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .card {
+            height: 100%;
+            width: 100%;
+            border: none;
         }
 
         #viewDiv {
-            border: 25px solid rgb(72, 83, 79);
+            border: 3px solid rgb(0, 0, 0);
             height: 100%;
             width: 100%;
         }
@@ -46,11 +81,20 @@
             right: 10px;
             z-index: 999;
         }
+
+        .popup {
+            position: absolute;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+        }
     </style>
 
     <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
     <script src="https://js.arcgis.com/4.30/"></script>
-
 </head>
 <script>
     require(["esri/Map", "esri/views/SceneView", "esri/widgets/Search"], (Map, SceneView, Search) => {
@@ -84,36 +128,82 @@
             });
         }
 
-
         // Add Teleport Button
         const teleportButton = document.createElement("button");
         teleportButton.innerText = "Go To Random Location";
         teleportButton.className = "btn btn-secondary teleport-button";
         teleportButton.onclick = teleportToRandomLocation;
-
-        // Append buttons to the document
         document.body.appendChild(teleportButton);
+
+        // Create a popup element
+        const popup = document.createElement("div");
+        popup.className = "popup";
+        document.body.appendChild(popup);
+
+        // Handle map click event
+        view.on("click", function(event) {
+            const lat = event.mapPoint.latitude.toFixed(6);
+            const lon = event.mapPoint.longitude.toFixed(6);
+
+            // Use Nominatim API for reverse geocoding
+            const url =
+                `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.address;
+                    const country = address.country || "Not Available";
+                    const city = address.city || address.town || address.village || "Not Available";
+                    const road = address.road || "Not Available";
+                    popup.style.left = `${event.x}px`;
+                    popup.style.top = `${event.y}px`;
+                    popup.style.display = "block";
+                    popup.innerHTML = `
+                        <b>Locations</b><br>
+                        Coordinates: <br>
+                        Latitude: ${lat} <br>
+                        Longitude: ${lon} <br><br>
+                        Country: ${country} <br>
+                        City: ${city} <br>
+                        Road: ${road}
+                    `;
+                })
+                .catch(error => {
+                    console.error("Error fetching location:", error);
+                    popup.style.left = `${event.x}px`;
+                    popup.style.top = `${event.y}px`;
+                    popup.style.display = "block";
+                    popup.innerHTML =
+                        `Coordinates: <br> Latitude: ${lat} <br> Longitude: ${lon} <br> Location information not available`;
+                });
+        });
+
+        // Hide popup when clicking outside of it
+        view.on("pointer-move", function() {
+            popup.style.display = "none";
+        });
+
     });
 </script>
 
 <body>
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand text-white" href="/">Arcgis JS Example</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
-                aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
-    </nav>
+    @include('navbar')
     <!-- End Navbar -->
 
+    <!-- Sidebar -->
+    @include('sidebar')
+    <!-- End Sidebar -->
+
     <!-- Container for the map -->
-    <div class="container">
-        <div id="viewDiv"></div>
+    <div class="content">
+        <div class="card">
+            <div class="card-body">
+                <div id="viewDiv"></div>
+            </div>
+        </div>
     </div>
 </body>
 

@@ -9,3 +9,7 @@ Route::get('/', function () {
 Route::get('arcgis', function() {
     return view('arcgis');
 });
+
+Route::get('home', function () {
+    return view('home');
+});
